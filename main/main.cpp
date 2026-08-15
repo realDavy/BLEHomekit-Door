@@ -256,7 +256,7 @@ extern "C" void app_main() {
         .manufacturer("Aidaegis")
         .model("ESP32-C3-Door")
         .serial_number(serial)
-        .firmware_revision("1.0.3")
+        .firmware_revision("1.0.4")
         .hardware_revision("ESP32-C3")
         .on_identify([]() {
             ESP_LOGW(TAG, "Identify (no LED on this hardware)");

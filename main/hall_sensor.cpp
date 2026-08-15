@@ -49,9 +49,7 @@ static void commit_level(int level, const char* why) {
 }
 
 void hall_sensor_init() {
-    // LCDkit firmware left GPIO5 as LEDC backlight with RTC/digital hold.
-    // Hold survives reset/deep sleep and makes gpio_get_level stick at 1
-    // even when the pin is shorted to GND.
+    // LCDkit leftover hold on the hall pad (was GPIO5 backlight on some boards).
     gpio_deep_sleep_hold_dis();
     gpio_hold_dis(BOARD_HALL_GPIO);
     gpio_reset_pin(BOARD_HALL_GPIO);
@@ -74,9 +72,9 @@ void hall_sensor_init() {
     s_candidate_us = esp_timer_get_time();
     sync_light_sleep_wakeup(level);
 
-    // GPIO0/2/4: extra pull-ups so a jumper to GND shows up in the pin scan
-    // if the hall wire is not actually on GPIO5.
-    for (int n : {0, 2, 4}) {
+    // Extra pull-ups on other wakeup GPIOs so a jumper to the wrong pad
+    // shows up in the pin scan.
+    for (int n : {0, 2, 5}) {
         if (n == static_cast<int>(BOARD_HALL_GPIO)) {
             continue;
         }
