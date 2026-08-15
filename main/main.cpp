@@ -48,9 +48,6 @@ public:
 static hap::AccessoryServer* s_server = nullptr;
 static std::shared_ptr<hap::core::Characteristic> s_contact_char;
 static std::shared_ptr<hap::core::Characteristic> s_contact_low_bat;
-static std::shared_ptr<hap::core::Characteristic> s_current_pos;
-static std::shared_ptr<hap::core::Characteristic> s_target_pos;
-static std::shared_ptr<hap::core::Characteristic> s_position_state;
 static std::shared_ptr<hap::core::Characteristic> s_battery_level;
 static std::shared_ptr<hap::core::Characteristic> s_charging_state;
 static std::shared_ptr<hap::core::Characteristic> s_status_low_battery;
@@ -71,29 +68,16 @@ static void apply_door_state(bool open, bool from_sensor) {
     const uint8_t contact = open
         ? static_cast<uint8_t>(hap::characteristic::ContactSensorState::NotDetected)
         : static_cast<uint8_t>(hap::characteristic::ContactSensorState::Detected);
-    const uint8_t position = open ? 100 : 0;
-    const uint8_t stopped =
-        static_cast<uint8_t>(hap::characteristic::PositionState::Stopped);
 
     if (s_contact_char) {
         s_contact_char->set_value(contact);
     }
-    if (s_current_pos) {
-        s_current_pos->set_value(position);
-    }
-    if (s_target_pos) {
-        s_target_pos->set_value(position);
-    }
-    if (s_position_state) {
-        s_position_state->set_value(stopped);
-    }
     if (from_sensor) {
         power_save_note_activity();
     }
-    ESP_LOGI(TAG, "HomeKit door %s (contact=%u pos=%u)",
+    ESP_LOGI(TAG, "HomeKit contact %s (%u)",
              open ? "OPEN" : "CLOSED",
-             static_cast<unsigned>(contact),
-             static_cast<unsigned>(position));
+             static_cast<unsigned>(contact));
 }
 
 static void apply_battery(const BatteryReading& bat) {
@@ -227,7 +211,7 @@ extern "C" void app_main() {
     config.network = nullptr;
     config.device_name = HAP_DEVICE_NAME;
     config.setup_code = setup_code;
-    config.category_id = hap::core::AccessoryCategory::Door;
+    config.category_id = hap::core::AccessoryCategory::Sensor;
     config.on_identify = []() {
         ESP_LOGW(TAG, "Identify (no LED on this hardware)");
     };
@@ -268,34 +252,13 @@ extern "C" void app_main() {
         .manufacturer("Aidaegis")
         .model("ESP32-C3-Door")
         .serial_number(serial)
-        .firmware_revision("1.0.0")
+        .firmware_revision("1.0.1")
         .hardware_revision("ESP32-C3")
         .on_identify([]() {
             ESP_LOGW(TAG, "Identify (no LED on this hardware)");
         })
         .build();
     accessory->add_service(info_service);
-
-    auto door_builder = hap::service::DoorBuilder();
-    door_builder.with_name("Door");
-    auto door_service = door_builder.build();
-    s_current_pos = find_characteristic(door_service, hap::characteristic::kType_CurrentPosition);
-    s_target_pos = find_characteristic(door_service, hap::characteristic::kType_TargetPosition);
-    s_position_state = find_characteristic(door_service, hap::characteristic::kType_PositionState);
-    if (s_target_pos) {
-        s_target_pos->set_write_callback([](const hap::core::Value&) -> hap::core::WriteResponse {
-            // Sensor-only: there is no actuator. Keep target equal to current.
-            const uint8_t pos = hall_sensor_is_open() ? 100 : 0;
-            if (s_target_pos) {
-                s_target_pos->set_value(pos);
-            }
-            if (s_current_pos) {
-                s_current_pos->set_value(pos);
-            }
-            return std::nullopt;
-        });
-    }
-    accessory->add_service(door_service);
 
     auto contact_builder = hap::service::ContactSensorBuilder();
     contact_builder.with_name("Door")

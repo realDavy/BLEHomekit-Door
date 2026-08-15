@@ -92,11 +92,12 @@ BLE-only 配件在没人连着时，家庭主页常显示「未响应」：
 
 | 服务 | 特征 | 含义 |
 |------|------|------|
-| Door（主服务） | CurrentPosition 0 / 100 | 关 / 开。无电机，TargetPosition 会被写回当前值 |
-| Contact Sensor | ContactSensorState | 门磁开合，可供自动化和通知 |
+| Contact Sensor（主服务） | ContactSensorState | 只检测开/关，没有电机、没有开度滑条 |
 | Battery | BatteryLevel、StatusLowBattery、ChargingState | 电量 0–100%，纽扣电池为不可充电 |
 
-配件类别为 **Door**。厂商名 **Aidaegis**。
+配件类别为 **Sensor**（门磁/接触传感器）。厂商名 **Aidaegis**。
+
+若家庭 App 里还显示开度百分比滑条，是旧固件的 Door 服务。请烧录本版本后，在「家庭」里删掉配件再添加。
 
 ## 工程结构
 
