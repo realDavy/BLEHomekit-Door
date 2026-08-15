@@ -3,35 +3,18 @@
 #include "board_pins.hpp"
 
 #include "driver/gpio.h"
-#include "esp_attr.h"
 #include "esp_bt.h"
 #include "esp_log.h"
 #include "esp_pm.h"
 #include "esp_sleep.h"
-#include "esp_system.h"
 #include "esp_timer.h"
 #include "nimble/nimble_port.h"
 
 static const char* TAG = "power";
 static int64_t s_last_activity_us;
 
-static constexpr uint32_t kWakeMagic = 0xD00A14E1;
-static RTC_NOINIT_ATTR uint32_t s_wake_magic;
-static RTC_NOINIT_ATTR uint32_t s_wake_cause;
-static bool s_cause_cached;
-static esp_sleep_wakeup_cause_t s_cached_cause;
-
 esp_sleep_wakeup_cause_t power_save_wakeup_cause() {
-    if (!s_cause_cached) {
-        if (s_wake_magic == kWakeMagic) {
-            s_cached_cause = static_cast<esp_sleep_wakeup_cause_t>(s_wake_cause);
-            s_wake_magic = 0;
-        } else {
-            s_cached_cause = esp_sleep_get_wakeup_cause();
-        }
-        s_cause_cached = true;
-    }
-    return s_cached_cause;
+    return esp_sleep_get_wakeup_cause();
 }
 
 void power_save_init() {
@@ -82,7 +65,7 @@ static void isolate_unused_gpios(gpio_num_t keep) {
 }
 
 void power_save_enter_deep_sleep(bool door_open) {
-    ESP_LOGW(TAG, "light sleep on GPIO%d (door %s, GPIO wakeup + %llu us timer)",
+    ESP_LOGW(TAG, "deep sleep on GPIO%d (door %s, GPIO wakeup + %llu us timer)",
              static_cast<int>(BOARD_HALL_GPIO),
              door_open ? "OPEN" : "CLOSED",
              static_cast<unsigned long long>(POWER_KEEPALIVE_US));
@@ -103,13 +86,11 @@ void power_save_enter_deep_sleep(bool door_open) {
     gpio_sleep_set_direction(BOARD_HALL_GPIO, GPIO_MODE_INPUT);
     gpio_sleep_set_pull_mode(BOARD_HALL_GPIO, GPIO_PULLUP_ONLY);
 
-    // GPIO14 cannot wake from deep sleep on ESP32-C3 (only GPIO0–5).
-    // Light-sleep GPIO wakeup is level-triggered on any pad.
+    // GPIO5 is in the ESP32-C3 deep-sleep wakeup set (GPIO0–5).
     const int level = gpio_get_level(BOARD_HALL_GPIO);
-    const gpio_int_type_t wake_intr =
-        level ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL;
-    ESP_ERROR_CHECK(gpio_wakeup_enable(BOARD_HALL_GPIO, wake_intr));
-    ESP_ERROR_CHECK(esp_sleep_enable_gpio_wakeup());
+    const esp_deepsleep_gpio_wake_up_mode_t wake_mode =
+        level ? ESP_GPIO_WAKEUP_GPIO_LOW : ESP_GPIO_WAKEUP_GPIO_HIGH;
+    ESP_ERROR_CHECK(esp_deep_sleep_enable_gpio_wakeup(1ULL << BOARD_HALL_GPIO, wake_mode));
     ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(POWER_KEEPALIVE_US));
 
     int rc = nimble_port_stop();
@@ -121,11 +102,5 @@ void power_save_enter_deep_sleep(bool door_open) {
     esp_bt_controller_disable();
     esp_bt_controller_deinit();
 
-    s_wake_magic = 0;
-    esp_light_sleep_start();
-    s_wake_cause = static_cast<uint32_t>(esp_sleep_get_wakeup_cause());
-    s_wake_magic = kWakeMagic;
-    ESP_LOGI(TAG, "light-sleep wake cause=%lu, rebooting to restart HAP-BLE",
-             static_cast<unsigned long>(s_wake_cause));
-    esp_restart();
+    esp_deep_sleep_start();
 }
