@@ -1,13 +1,14 @@
 #pragma once
 
 // ESP32-C3 coin-cell HomeKit door (hall / reed). No LCD, encoder, or LED.
-// Deep-sleep GPIO wakeup on ESP32-C3 is only GPIO0–GPIO5.
+// Hall is on GPIO14. ESP32-C3 deep-sleep GPIO wakeup is only GPIO0–5, so
+// idle power-down uses light sleep (any GPIO) then a reboot to restart BLE.
 
 #include "driver/gpio.h"
 #include "esp_adc/adc_oneshot.h"
 
 #ifndef BOARD_HALL_GPIO
-#define BOARD_HALL_GPIO            GPIO_NUM_3
+#define BOARD_HALL_GPIO            GPIO_NUM_14
 #endif
 
 // Hold to GND for ~1.5 s at power-on to clear HomeKit pairings.

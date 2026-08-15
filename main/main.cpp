@@ -154,7 +154,7 @@ static void hap_work_task(void* arg) {
 }
 
 static const char* wakeup_reason_str() {
-    switch (esp_sleep_get_wakeup_cause()) {
+    switch (power_save_wakeup_cause()) {
     case ESP_SLEEP_WAKEUP_GPIO:
         return "gpio";
     case ESP_SLEEP_WAKEUP_TIMER:
@@ -334,7 +334,7 @@ extern "C" void app_main() {
     log_heap("after hap start");
     // GPIO wake means the door moved while we were asleep — bump GSN so
     // the hub sees a disconnected event and reconnects for the new state.
-    if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_GPIO) {
+    if (power_save_wakeup_cause() == ESP_SLEEP_WAKEUP_GPIO) {
         apply_door_state(hall_sensor_is_open(), true);
         apply_battery(battery_monitor_read());
     }
