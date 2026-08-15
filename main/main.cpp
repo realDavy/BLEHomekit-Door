@@ -231,8 +231,8 @@ extern "C" void app_main() {
     config.on_identify = []() {
         ESP_LOGW(TAG, "Identify (no LED on this hardware)");
     };
-    config.on_pairings_changed = [work_queue, &storage_impl](const hap::PairingEvent& event) {
-        auto* job = new std::function<void()>([event, &storage_impl]() {
+    config.on_pairings_changed = [work_queue](const hap::PairingEvent& event) {
+        auto* job = new std::function<void()>([event]() {
             bool paired_now = event.type == hap::PairingEventType::Added;
             if (event.type == hap::PairingEventType::Removed) {
                 auto list = storage_impl.get("pairing_list");
