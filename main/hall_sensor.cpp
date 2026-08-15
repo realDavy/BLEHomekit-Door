@@ -81,7 +81,7 @@ void hall_sensor_init() {
 
     // Extra pull-ups on other wakeup GPIOs so a jumper to the wrong pad
     // shows up in the pin scan.
-    for (int n : {0, 2, 5}) {
+    for (int n : {0, 2, 4}) {
         if (n == static_cast<int>(BOARD_HALL_GPIO)) {
             continue;
         }
