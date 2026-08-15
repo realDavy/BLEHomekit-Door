@@ -256,7 +256,7 @@ extern "C" void app_main() {
         .manufacturer("Aidaegis")
         .model("ESP32-C3-Door")
         .serial_number(serial)
-        .firmware_revision("1.0.2")
+        .firmware_revision("1.0.3")
         .hardware_revision("ESP32-C3")
         .on_identify([]() {
             ESP_LOGW(TAG, "Identify (no LED on this hardware)");
@@ -331,6 +331,7 @@ extern "C" void app_main() {
                      static_cast<int>(BOARD_HALL_GPIO),
                      hall_sensor_raw_level(),
                      hall_sensor_is_open() ? "OPEN" : "CLOSED");
+            hall_sensor_log_pin_scan();
         }
         if (now - last_battery_us > 30LL * 1000000LL) {
             last_battery_us = now;

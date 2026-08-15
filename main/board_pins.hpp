@@ -35,7 +35,7 @@
 #define BATTERY_FULL_MV            3000
 #define BATTERY_EMPTY_MV           2000
 #define BATTERY_LOW_PERCENT        20
-#define BATTERY_UNCONNECTED_MV     400
+#define BATTERY_UNCONNECTED_MV     1800
 
 // After a door event, stay awake this long so the hub can connect.
 #define POWER_IDLE_SLEEP_MS        12000

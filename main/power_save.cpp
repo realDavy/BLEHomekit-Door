@@ -6,8 +6,11 @@
 #include "esp_bt.h"
 #include "esp_log.h"
 #include "esp_pm.h"
+#include "esp_rom_uart.h"
 #include "esp_sleep.h"
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "nimble/nimble_port.h"
 
 static const char* TAG = "power";
@@ -49,26 +52,62 @@ bool power_save_should_sleep(bool paired, uint16_t ble_links) {
     return idle_us >= static_cast<int64_t>(POWER_IDLE_SLEEP_MS) * 1000;
 }
 
+static bool is_flash_or_console_gpio(int n) {
+    // ESP32-C3 in-package flash: GPIO11–17. Resetting those while code
+    // still runs from flash hangs the CPU and trips TG1 WDT.
+    if (n >= 11 && n <= 17) {
+        return true;
+    }
+    // USB-Serial/JTAG (18/19) and UART0 console (20/21).
+    return n == 18 || n == 19 || n == 20 || n == 21;
+}
+
 static void isolate_unused_gpios(gpio_num_t keep) {
-    // ESP32-C3: skip USB-Serial/JTAG (18/19) and UART0 (20/21) if a debug
-    // cable is attached; floating unused pins still waste microamps.
     for (int n = 0; n <= 21; ++n) {
-        if (n == static_cast<int>(keep)) {
+        if (n == static_cast<int>(keep) || is_flash_or_console_gpio(n)) {
             continue;
         }
-        if (n == 18 || n == 19 || n == 20 || n == 21) {
-            continue;
-        }
-        const gpio_num_t pin = static_cast<gpio_num_t>(n);
-        gpio_reset_pin(pin);
+        gpio_reset_pin(static_cast<gpio_num_t>(n));
     }
 }
 
+static void stop_radio() {
+    ESP_LOGW(TAG, "stopping NimBLE");
+    const int rc = nimble_port_stop();
+    ESP_LOGW(TAG, "nimble_port_stop rc=%d", rc);
+    if (rc == 0) {
+        nimble_port_deinit();
+    }
+    esp_err_t err = esp_bt_controller_disable();
+    ESP_LOGW(TAG, "bt_controller_disable %s", esp_err_to_name(err));
+    err = esp_bt_controller_deinit();
+    ESP_LOGW(TAG, "bt_controller_deinit %s", esp_err_to_name(err));
+    err = esp_bt_mem_release(ESP_BT_MODE_BLE);
+    ESP_LOGW(TAG, "bt_mem_release %s", esp_err_to_name(err));
+}
+
 void power_save_enter_deep_sleep(bool door_open) {
-    ESP_LOGW(TAG, "deep sleep on GPIO%d (door %s, GPIO wakeup + %llu us timer)",
+    ESP_LOGW(TAG, "preparing deep sleep on GPIO%d (door %s, timer %llu us)",
              static_cast<int>(BOARD_HALL_GPIO),
              door_open ? "OPEN" : "CLOSED",
              static_cast<unsigned long long>(POWER_KEEPALIVE_US));
+
+    gpio_wakeup_disable(BOARD_HALL_GPIO);
+    (void)esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_GPIO);
+
+#if CONFIG_PM_ENABLE
+    esp_pm_config_t pm = {
+        .max_freq_mhz = 80,
+        .min_freq_mhz = 80,
+        .light_sleep_enable = false,
+    };
+    (void)esp_pm_configure(&pm);
+#endif
+
+    // Stop the radio while flash pins are still valid. Isolating GPIO11–17
+    // first was causing TG1WDT_SYS_RST instead of actual deep sleep.
+    stop_radio();
+    vTaskDelay(pdMS_TO_TICKS(20));
 
     gpio_intr_disable(BOARD_HALL_GPIO);
 
@@ -86,21 +125,16 @@ void power_save_enter_deep_sleep(bool door_open) {
     gpio_sleep_set_direction(BOARD_HALL_GPIO, GPIO_MODE_INPUT);
     gpio_sleep_set_pull_mode(BOARD_HALL_GPIO, GPIO_PULLUP_ONLY);
 
-    // GPIO5 is in the ESP32-C3 deep-sleep wakeup set (GPIO0–5).
     const int level = gpio_get_level(BOARD_HALL_GPIO);
     const esp_deepsleep_gpio_wake_up_mode_t wake_mode =
         level ? ESP_GPIO_WAKEUP_GPIO_LOW : ESP_GPIO_WAKEUP_GPIO_HIGH;
     ESP_ERROR_CHECK(esp_deep_sleep_enable_gpio_wakeup(1ULL << BOARD_HALL_GPIO, wake_mode));
     ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(POWER_KEEPALIVE_US));
 
-    int rc = nimble_port_stop();
-    if (rc == 0) {
-        nimble_port_deinit();
-    } else {
-        ESP_LOGW(TAG, "nimble_port_stop rc=%d", rc);
-    }
-    esp_bt_controller_disable();
-    esp_bt_controller_deinit();
-
+    ESP_LOGW(TAG, "entering deep sleep (GPIO%d=%d, wake on %s)",
+             static_cast<int>(BOARD_HALL_GPIO),
+             level,
+             level ? "LOW" : "HIGH");
+    esp_rom_output_tx_wait_idle(CONFIG_ESP_CONSOLE_UART_NUM);
     esp_deep_sleep_start();
 }

@@ -74,11 +74,34 @@ void hall_sensor_init() {
     s_candidate_us = esp_timer_get_time();
     sync_light_sleep_wakeup(level);
 
+    // GPIO0/2/4: extra pull-ups so a jumper to GND shows up in the pin scan
+    // if the hall wire is not actually on GPIO5.
+    for (int n : {0, 2, 4}) {
+        if (n == static_cast<int>(BOARD_HALL_GPIO)) {
+            continue;
+        }
+        const gpio_num_t pin = static_cast<gpio_num_t>(n);
+        gpio_reset_pin(pin);
+        gpio_set_direction(pin, GPIO_MODE_INPUT);
+        gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY);
+    }
+
     ESP_LOGW(TAG, "GPIO%d initial %s (raw=%d, pull-up, LOW=closed)",
              static_cast<int>(BOARD_HALL_GPIO),
              level_is_open(level) ? "OPEN" : "CLOSED",
              level);
     gpio_dump_io_configuration(stdout, 1ULL << BOARD_HALL_GPIO);
+    hall_sensor_log_pin_scan();
+}
+
+void hall_sensor_log_pin_scan() {
+    // C3 deep-sleep wakeup set is GPIO0–5. GPIO1 is the battery ADC.
+    ESP_LOGW(TAG, "pin scan IO0=%d IO2=%d IO3=%d IO4=%d IO5=%d  (0=shorted to GND)",
+             gpio_get_level(GPIO_NUM_0),
+             gpio_get_level(GPIO_NUM_2),
+             gpio_get_level(GPIO_NUM_3),
+             gpio_get_level(GPIO_NUM_4),
+             gpio_get_level(GPIO_NUM_5));
 }
 
 void hall_sensor_poll() {

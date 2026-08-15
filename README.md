@@ -103,10 +103,13 @@ BLE-only 配件在没人连着时，家庭主页常显示「未响应」：
 
 先看串口，不要只看家庭 App：
 
-1. 烧录后日志应有 `GPIO5 initial … (raw=0/1, pull-up, LOW=closed)`
-2. 把 **模组上的 IO5** 直接短到 GND，约 2 秒内应出现 `GPIO5 LOW → door CLOSED`，并且心跳变成 `GPIO5=0 CLOSED`
-3. 若短接到 GND 后串口仍是 `GPIO5=1 OPEN`：焊盘不是芯片 IO5，或 IO5 仍接在 LCD 背光电路上被强驱高。请从芯片脚/排针 IO5 对地，不要从屏幕座脚碰
-4. 串口已经是 `CLOSED`，家庭 App 仍「开着」：配件还是旧的 Door（带开度滑条），或手机/中枢没连上蓝牙。删掉配件再添加，添加后用 iPhone 靠近板子打开配件详情（不要只靠远处的 HomePod）
+1. 烧录后日志应有 `GPIO5 initial … (raw=0/1, pull-up, LOW=closed)` 和 `pin scan IO0=… IO5=…`
+2. 把 **模组排针丝印 5** 用杜邦线直接短到 GND。约 2 秒内应出现 `GPIO5 LOW → door CLOSED`，且 `pin scan` 里 **IO5=0**
+3. 若 IO5 仍是 1、但 IO0/IO2/IO4 变成 0：你短到的不是 GPIO5，把门磁改焊到真正变 0 的那只脚，或改 `BOARD_HALL_GPIO`
+4. 拔掉 LCD。很多 C3 屏把 GPIO5 当背光，从屏幕座脚对地碰不到芯片 IO5
+5. 串口已经是 `CLOSED`，家庭 App 仍「开着」：删掉配件再添加，iPhone 靠近板子用蓝牙打开详情
+
+深睡失败时串口会反复出现 `rst:0x8 (TG1WDT_SYS_RST)` 且 `wake=power-on`。1.0.3 起不再复位 SPI Flash 脚（GPIO11–17）。
 
 ## 工程结构
 
