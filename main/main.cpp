@@ -19,6 +19,7 @@
 #include "Esp32Storage.hpp"
 #include "hap/AccessoryServer.hpp"
 #include "hap/core/Accessory.hpp"
+#include "hap/core/Characteristic.hpp"
 #include "hap/types/CharacteristicTypes.hpp"
 #include "hap/types/ServiceTypes.hpp"
 
@@ -71,13 +72,16 @@ static void apply_door_state(bool open, bool from_sensor) {
 
     if (s_contact_char) {
         s_contact_char->set_value(contact);
+    } else {
+        ESP_LOGE(TAG, "ContactSensorState characteristic missing");
     }
     if (from_sensor) {
         power_save_note_activity();
     }
-    ESP_LOGI(TAG, "HomeKit contact %s (%u)",
+    ESP_LOGW(TAG, "HomeKit contact %s (ContactSensorState=%u %s)",
              open ? "OPEN" : "CLOSED",
-             static_cast<unsigned>(contact));
+             static_cast<unsigned>(contact),
+             open ? "NotDetected" : "Detected");
 }
 
 static void apply_battery(const BatteryReading& bat) {
@@ -252,7 +256,7 @@ extern "C" void app_main() {
         .manufacturer("Aidaegis")
         .model("ESP32-C3-Door")
         .serial_number(serial)
-        .firmware_revision("1.0.1")
+        .firmware_revision("1.0.2")
         .hardware_revision("ESP32-C3")
         .on_identify([]() {
             ESP_LOGW(TAG, "Identify (no LED on this hardware)");
@@ -264,10 +268,17 @@ extern "C" void app_main() {
     contact_builder.with_name("Door")
         .with_battery_status();
     auto contact_service = contact_builder.build();
-    s_contact_char = find_characteristic(
-        contact_service, hap::characteristic::kType_ContactSensorState);
+    s_contact_char = contact_builder.contact_sensor_state();
     s_contact_low_bat = find_characteristic(
         contact_service, hap::characteristic::kType_StatusLowBattery);
+    if (s_contact_char) {
+        s_contact_char->on_read([]() -> hap::core::ReadResponse {
+            const uint8_t contact = hall_sensor_is_open()
+                ? static_cast<uint8_t>(hap::characteristic::ContactSensorState::NotDetected)
+                : static_cast<uint8_t>(hap::characteristic::ContactSensorState::Detected);
+            return hap::core::Value{contact};
+        });
+    }
     accessory->add_service(contact_service);
 
     auto battery_builder = hap::service::BatteryServiceBuilder();
@@ -295,23 +306,32 @@ extern "C" void app_main() {
     log_heap("before hap start");
     server.start();
     log_heap("after hap start");
-    // GPIO wake means the door moved while we were asleep — bump GSN so
-    // the hub sees a disconnected event and reconnects for the new state.
-    if (power_save_wakeup_cause() == ESP_SLEEP_WAKEUP_GPIO) {
-        apply_door_state(hall_sensor_is_open(), true);
-        apply_battery(battery_monitor_read());
-    }
+    apply_door_state(hall_sensor_is_open(), true);
+    apply_battery(battery_monitor_read());
+    ESP_LOGW(TAG, "GPIO%d raw=%d → HomeKit %s (LOW=closed)",
+             static_cast<int>(BOARD_HALL_GPIO),
+             hall_sensor_raw_level(),
+             hall_sensor_is_open() ? "OPEN" : "CLOSED");
     power_save_note_activity();
 
     int64_t last_battery_us = esp_timer_get_time();
+    int64_t last_gpio_log_us = last_battery_us;
     int64_t boot_us = last_battery_us;
     s_boot_edges = hall_sensor_edge_count();
 
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(50));
+        hall_sensor_poll();
         server.tick();
 
         const int64_t now = esp_timer_get_time();
+        if (now - last_gpio_log_us > 2LL * 1000000LL) {
+            last_gpio_log_us = now;
+            ESP_LOGI(TAG, "GPIO%d=%d %s (short to GND should be CLOSED)",
+                     static_cast<int>(BOARD_HALL_GPIO),
+                     hall_sensor_raw_level(),
+                     hall_sensor_is_open() ? "OPEN" : "CLOSED");
+        }
         if (now - last_battery_us > 30LL * 1000000LL) {
             last_battery_us = now;
             apply_battery(battery_monitor_read());
