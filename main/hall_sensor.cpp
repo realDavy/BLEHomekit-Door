@@ -24,6 +24,10 @@ static bool level_is_open(int level) {
 // the CPU. Wake on the opposite of the current level so a door event
 // interrupts idle instead of waiting for the 50 ms poll.
 static void sync_light_sleep_wakeup(int level) {
+    // ESP32-C3 GPIO wakeup (light and deep) is only GPIO0–5.
+    if (BOARD_HALL_GPIO > GPIO_NUM_5) {
+        return;
+    }
     gpio_wakeup_disable(BOARD_HALL_GPIO);
     const gpio_int_type_t wake = level ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL;
     gpio_wakeup_enable(BOARD_HALL_GPIO, wake);
@@ -74,7 +78,7 @@ void hall_sensor_init() {
 
     // Extra pull-ups on other wakeup GPIOs so a jumper to the wrong pad
     // shows up in the pin scan.
-    for (int n : {0, 2, 5}) {
+    for (int n : {0, 2, 4, 5}) {
         if (n == static_cast<int>(BOARD_HALL_GPIO)) {
             continue;
         }
@@ -94,12 +98,13 @@ void hall_sensor_init() {
 
 void hall_sensor_log_pin_scan() {
     // C3 deep-sleep wakeup set is GPIO0–5. GPIO1 is the battery ADC.
-    ESP_LOGW(TAG, "pin scan IO0=%d IO2=%d IO3=%d IO4=%d IO5=%d  (0=shorted to GND)",
+    ESP_LOGW(TAG, "pin scan IO0=%d IO2=%d IO3=%d IO4=%d IO5=%d IO14=%d  (0=shorted to GND)",
              gpio_get_level(GPIO_NUM_0),
              gpio_get_level(GPIO_NUM_2),
              gpio_get_level(GPIO_NUM_3),
              gpio_get_level(GPIO_NUM_4),
-             gpio_get_level(GPIO_NUM_5));
+             gpio_get_level(GPIO_NUM_5),
+             gpio_get_level(GPIO_NUM_14));
 }
 
 void hall_sensor_poll() {

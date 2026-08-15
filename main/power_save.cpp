@@ -38,6 +38,11 @@ void power_save_init() {
     esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_DEFAULT, ESP_PWR_LVL_N0);
     esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_N0);
     esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_CONN_HDL0, ESP_PWR_LVL_N0);
+
+    if (BOARD_HALL_GPIO > GPIO_NUM_5) {
+        ESP_LOGW(TAG, "hall on GPIO%d: skip deep sleep (C3 GPIO wakeup is 0–5 only)",
+                 static_cast<int>(BOARD_HALL_GPIO));
+    }
 }
 
 void power_save_note_activity() {
@@ -45,6 +50,9 @@ void power_save_note_activity() {
 }
 
 bool power_save_should_sleep(bool paired, uint16_t ble_links) {
+    if (BOARD_HALL_GPIO > GPIO_NUM_5) {
+        return false;
+    }
     if (!paired || ble_links > 0) {
         return false;
     }

@@ -1,14 +1,14 @@
 #pragma once
 
 // ESP32-C3 coin-cell HomeKit door (hall / reed). No LCD, encoder, or LED.
-// Hall is on GPIO4 (this board's reed/hall pad). C3 deep-sleep GPIO wakeup
-// is GPIO0–5, so GPIO4 still wakes the chip.
+// Temporary test pin: GPIO14. C3 deep-sleep GPIO wakeup is only GPIO0–5,
+// so idle deep sleep is disabled while the hall is on GPIO14.
 
 #include "driver/gpio.h"
 #include "esp_adc/adc_oneshot.h"
 
 #ifndef BOARD_HALL_GPIO
-#define BOARD_HALL_GPIO            GPIO_NUM_4
+#define BOARD_HALL_GPIO            GPIO_NUM_14
 #endif
 
 // Hold to GND for ~1.5 s at power-on to clear HomeKit pairings.
