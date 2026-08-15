@@ -7,6 +7,9 @@
 #include "esp_sleep.h"
 #include "esp_timer.h"
 
+static_assert(BOARD_HALL_GPIO < GPIO_NUM_11 || BOARD_HALL_GPIO > GPIO_NUM_17,
+              "ESP32-C3 GPIO11-17 are in-package SPI flash (GPIO14 is CS)");
+
 static const char* TAG = "hall";
 static constexpr int64_t kDebounceUs = 40000;
 
@@ -78,7 +81,7 @@ void hall_sensor_init() {
 
     // Extra pull-ups on other wakeup GPIOs so a jumper to the wrong pad
     // shows up in the pin scan.
-    for (int n : {0, 2, 4, 5}) {
+    for (int n : {0, 2, 5}) {
         if (n == static_cast<int>(BOARD_HALL_GPIO)) {
             continue;
         }
@@ -98,13 +101,12 @@ void hall_sensor_init() {
 
 void hall_sensor_log_pin_scan() {
     // C3 deep-sleep wakeup set is GPIO0–5. GPIO1 is the battery ADC.
-    ESP_LOGW(TAG, "pin scan IO0=%d IO2=%d IO3=%d IO4=%d IO5=%d IO14=%d  (0=shorted to GND)",
+    ESP_LOGW(TAG, "pin scan IO0=%d IO2=%d IO3=%d IO4=%d IO5=%d  (0=shorted to GND)",
              gpio_get_level(GPIO_NUM_0),
              gpio_get_level(GPIO_NUM_2),
              gpio_get_level(GPIO_NUM_3),
              gpio_get_level(GPIO_NUM_4),
-             gpio_get_level(GPIO_NUM_5),
-             gpio_get_level(GPIO_NUM_14));
+             gpio_get_level(GPIO_NUM_5));
 }
 
 void hall_sensor_poll() {
