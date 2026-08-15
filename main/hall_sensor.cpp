@@ -3,7 +3,6 @@
 #include "board_pins.hpp"
 
 #include "driver/gpio.h"
-#include "driver/rtc_io.h"
 #include "esp_log.h"
 #include "esp_sleep.h"
 #include "esp_timer.h"
@@ -54,10 +53,6 @@ void hall_sensor_init() {
     // Hold survives reset/deep sleep and makes gpio_get_level stick at 1
     // even when the pin is shorted to GND.
     gpio_deep_sleep_hold_dis();
-    if (rtc_gpio_is_valid_gpio(BOARD_HALL_GPIO)) {
-        rtc_gpio_hold_dis(BOARD_HALL_GPIO);
-        rtc_gpio_deinit(BOARD_HALL_GPIO);
-    }
     gpio_hold_dis(BOARD_HALL_GPIO);
     gpio_reset_pin(BOARD_HALL_GPIO);
     gpio_sleep_sel_dis(BOARD_HALL_GPIO);
