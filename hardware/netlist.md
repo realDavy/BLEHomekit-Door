@@ -170,3 +170,13 @@ Q1.D(3) ── GPIO5 ── U1.IO5(19)      ← 漏极接 GPIO5，禁止接 3V3
 ```
 
 Q1 漏极接 3V3、源极接地会在门开时把电源短路。GPIO5 接到 HALL_OUT 则没有反相。
+
+```
+U2 TPS61099DRVR（WSON-6）
+U2.GND(1)、PAD(7) ── GND
+U2.VIN(6) ── VBAT ── BT1+、C1、C4、R4、L1、R1（电量分压）
+U2.EN(4)  ── BOOST_EN ── R4（另一端 VBAT）。EN 不可浮空
+U2.SW(5)  ── SW ── L1（另一端 VBAT）。SW 只连电感
+U2.VOUT(2)── 3V3 ── U1.3V3、C2、C3、R8
+U2.FB(3)  ── FB ── R8（另一端 3V3）与 R9（另一端 GND）中点
+```
