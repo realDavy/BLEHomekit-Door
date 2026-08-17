@@ -1,7 +1,7 @@
 Comment,Designator,Footprint,Quantity,LCSC,Manufacturer,MPN,Value,DNP,Note
 ESP32-C3-MINI-1-N4 Wi-Fi/BLE module 4MB flash PCB antenna,U1,RF_ESP32-C3-MINI-1,1,C2838502,Espressif,ESP32-C3-MINI-1-N4,ESP32-C3FH4 4MB,NO,主控。模组脚 3=3V3 8=EN 13=IO1 6=IO3 19=IO5 23=IO9 30=RXD0 31=TXD0
 TPS61099 0.7-5.5Vin boost Iq 1uA adj 3.3V,U2,WSON-6-EP_2x2,1,C2842395,Texas Instruments,TPS61099DRVR,Boost 3.3V,NO,纽扣电池升到 3.3V。EN 接 VBAT。FB: R8/R9
-TMAG5233D1B in-plane omnipolar hall 5Hz 0.55uA,U3,SOT-23-3,1,C43134686,Texas Instruments,TMAG5233D1BDBVR,Hall side-sense,NO,侧感应 X轴。1=VCC 2=OUT 3=GND。OUT->Q1栅。磁铁靠近OUT低
+TMAG5233D1E in-plane omnipolar hall 40Hz 2.7uA,U3,SOT-23-3,1,C44538511,Texas Instruments,TMAG5233D1EDBVR,Hall side-sense,NO,立创现货。侧感应X轴。1=VCC 2=OUT 3=GND。OUT->Q1栅。D1B无货可替但常缺
 2N7002 NMOS inverter,Q1,SOT-23,1,C8545,On Semiconductor,2N7002,NMOS,NO,G=HALL_OUT S=GND D=GPIO5。门开拉低
 Reed switch unused,SW2,REED_14mm_TH,1,C93038,MKA,MKA-14103,SPST-NO,YES,本版不贴
 CR2450 SMT battery holder,BT1,BAT_CR2450_SMD,1,C964809,MYOUNG,BS-24-B4AA016,CR2450 holder,NO,金触点卧式。编带用 C964810

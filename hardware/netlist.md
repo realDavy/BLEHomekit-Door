@@ -1,6 +1,6 @@
 # BLEHomekit-Door 网络表
 
-文档版本 **1.2**。主控 **ESP32-C3-MINI-1-N4**，门磁锁定 **TMAG5233D1BDBVR**（侧感应，U3，LCSC C43134686）+ **2N7002** 反相。
+文档版本 **1.3**。主控 **ESP32-C3-MINI-1-N4**，门磁锁定 **TMAG5233D1EDBVR**（侧感应，U3，LCSC **C44538511**，立创现货）+ **2N7002** 反相。
 
 机器可读文件：
 
@@ -47,7 +47,7 @@ U3 SOT-23：**1=VCC → 3V3**，**2=OUT → HALL_OUT**，**3=GND**。感应轴�
 | 6 | VIN | `VBAT` |
 | 7（焊盘） | PAD | `GND` |
 
-### U3 TMAG5233D1BDBVR（SOT-23 DBV，顶视）
+### U3 TMAG5233D1EDBVR（SOT-23 DBV，顶视）
 
 | 脚 | 名称 | 网名 |
 |----|------|------|
