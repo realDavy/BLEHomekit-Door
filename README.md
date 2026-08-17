@@ -6,7 +6,9 @@ ESP32-C3 HomeKit BLE 门磁（纽扣电池，霍尔 / 干簧管）。
 
 主控固定为 **Espressif ESP32-C3-MINI-1-N4**（4 MB Flash，板载 PCB 天线）。
 
-完整电子 BOM、引脚、禁选料见 [`hardware/BOM.md`](hardware/BOM.md)，下单表见 [`hardware/BOM.csv`](hardware/BOM.csv)。
+完整电子 BOM 见 [`hardware/BOM.md`](hardware/BOM.md)，下单表 [`hardware/BOM.csv`](hardware/BOM.csv)，网络表 [`hardware/netlist.md`](hardware/netlist.md)。
+
+门磁锁定 **DRV5032FBDBZR**（SOT-23：1=VCC，2=OUT→GPIO5，3=GND）。
 
 | 功能 | GPIO | 模组引脚 |
 |------|------|----------|

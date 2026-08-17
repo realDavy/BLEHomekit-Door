@@ -1,8 +1,8 @@
 # 硬件
 
-HomeKit BLE 门磁硬件，主控 **ESP32-C3-MINI-1-N4**。
+HomeKit BLE 门磁。主控 **ESP32-C3-MINI-1-N4**，门磁 **DRV5032FBDBZR**。
 
-- 详细电子料单：[`BOM.md`](BOM.md)
-- 嘉立创 / 立创表格：[`BOM.csv`](BOM.csv)
+- 电子料单：[`BOM.md`](BOM.md) / [`BOM.csv`](BOM.csv)
+- 网络表：[`netlist.md`](netlist.md) / [`netlist.csv`](netlist.csv) / [`BLEHomekit-Door.net`](BLEHomekit-Door.net)
 
-固件引脚见 `main/board_pins.hpp`（霍尔 GPIO5、电池 ADC GPIO1、清配对 GPIO3）。
+U3 SOT-23：1=VCC，2=OUT→GPIO5，3=GND。
