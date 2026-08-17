@@ -78,6 +78,8 @@ AccessoryServer::AccessoryServer(Config config) : config_(std::move(config)), im
         }
         
         if (!is_add && !is_paired) {
+            config_.system->log(platform::System::LogLevel::Warning,
+                "[AccessoryServer] Home removed last controller; clearing pairings");
             reset_pairing_state();
         }
         

@@ -1,13 +1,9 @@
 #include "hap_pairing.hpp"
-#include "board_pins.hpp"
 
-#include "driver/gpio.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_mac.h"
 #include "esp_random.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 
@@ -73,32 +69,6 @@ static bool parse_pairing_ids(const std::string& list, std::vector<std::string>&
         expect_value = false;
     }
     return !expect_value || ids.empty();
-}
-
-bool hap_reset_pin_held(int hold_ms) {
-    gpio_config_t io = {};
-    io.pin_bit_mask = 1ULL << BOARD_RESET_GPIO;
-    io.mode = GPIO_MODE_INPUT;
-    io.pull_up_en = GPIO_PULLUP_ENABLE;
-    io.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    io.intr_type = GPIO_INTR_DISABLE;
-    gpio_config(&io);
-
-    vTaskDelay(pdMS_TO_TICKS(50));
-    if (gpio_get_level(BOARD_RESET_GPIO) != 0) {
-        return false;
-    }
-
-    const int step_ms = 50;
-    int waited = 0;
-    while (waited < hold_ms) {
-        vTaskDelay(pdMS_TO_TICKS(step_ms));
-        waited += step_ms;
-        if (gpio_get_level(BOARD_RESET_GPIO) != 0) {
-            return false;
-        }
-    }
-    return true;
 }
 
 static bool hap_nvs_has_pairing_list() {

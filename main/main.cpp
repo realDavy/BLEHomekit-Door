@@ -53,7 +53,6 @@ static std::shared_ptr<hap::core::Characteristic> s_battery_level;
 static std::shared_ptr<hap::core::Characteristic> s_charging_state;
 static std::shared_ptr<hap::core::Characteristic> s_status_low_battery;
 static bool s_paired = false;
-static uint32_t s_boot_edges = 0;
 
 static std::shared_ptr<hap::core::Characteristic> find_characteristic(
     const std::shared_ptr<hap::core::Service>& service, uint64_t type) {
@@ -109,9 +108,7 @@ static void log_pairing_banner(bool paired, const std::string& setup_code) {
     if (paired) {
         ESP_LOGW(TAG, "================================================");
         ESP_LOGW(TAG, "HomeKit BLE already paired (SF=0)");
-        ESP_LOGW(TAG, "Hold GPIO%d to GND 1.5s at power-on to unpair.",
-                 static_cast<int>(BOARD_RESET_GPIO));
-        ESP_LOGW(TAG, "Or toggle the door 10 times within 8s after boot.");
+        ESP_LOGW(TAG, "Remove it in the Home app (keep BLE connected) to unpair.");
         ESP_LOGW(TAG, "================================================");
     } else {
         ESP_LOGI(TAG, "================================================");
@@ -188,10 +185,6 @@ extern "C" void app_main() {
     static Esp32Storage storage_impl;
     static Esp32Crypto crypto_impl;
 
-    if (hap_reset_pin_held(1500)) {
-        ESP_LOGW(TAG, "Reset pin held at boot: clearing HomeKit pairings");
-        hap_clear_controller_pairings(storage_impl);
-    }
     bool paired = hap_sanitize_pairings(storage_impl);
     if (!hap_align_ble_identity(storage_impl)) {
         paired = false;
@@ -222,7 +215,8 @@ extern "C" void app_main() {
     config.on_pairings_changed = [work_queue](const hap::PairingEvent& event) {
         auto* job = new std::function<void()>([event]() {
             bool paired_now = event.type == hap::PairingEventType::Added;
-            if (event.type == hap::PairingEventType::Removed) {
+            if (event.type == hap::PairingEventType::Removed ||
+                event.type == hap::PairingEventType::AllRemoved) {
                 auto list = storage_impl.get("pairing_list");
                 if (list && list->size() > 2) {
                     const std::string raw(list->begin(), list->end());
@@ -256,7 +250,7 @@ extern "C" void app_main() {
         .manufacturer("Aidaegis")
         .model("ESP32-C3-Door")
         .serial_number(serial)
-        .firmware_revision("1.0.7")
+        .firmware_revision("1.0.8")
         .hardware_revision("ESP32-C3")
         .on_identify([]() {
             ESP_LOGW(TAG, "Identify (no LED on this hardware)");
@@ -316,8 +310,6 @@ extern "C" void app_main() {
 
     int64_t last_battery_us = esp_timer_get_time();
     int64_t last_gpio_log_us = last_battery_us;
-    int64_t boot_us = last_battery_us;
-    s_boot_edges = hall_sensor_edge_count();
 
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(50));
@@ -336,13 +328,6 @@ extern "C" void app_main() {
         if (now - last_battery_us > 30LL * 1000000LL) {
             last_battery_us = now;
             apply_battery(battery_monitor_read());
-        }
-
-        if (!s_paired && now - boot_us < 8LL * 1000000LL) {
-            if (hall_sensor_edge_count() - s_boot_edges >= 10) {
-                ESP_LOGW(TAG, "Hall toggle factory reset (boot window)");
-                server.factory_reset();
-            }
         }
 
         if (ble_impl.active_connections() > 0) {

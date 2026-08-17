@@ -2,10 +2,6 @@
 
 #include "hap/platform/Storage.hpp"
 
-// Hold BOARD_RESET_GPIO to GND at power-on to clear leftover HomeKit pairings
-// without changing the MAC-derived setup code.
-bool hap_reset_pin_held(int hold_ms);
-
 // Log whether a leftover pairing_list is present. Pairings persist across reboot.
 void hap_wipe_legacy_nvs();
 

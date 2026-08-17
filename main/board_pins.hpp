@@ -11,12 +11,6 @@
 #define BOARD_HALL_GPIO            GPIO_NUM_5
 #endif
 
-// Hold to GND for ~1.5 s at power-on to clear HomeKit pairings.
-#ifndef BOARD_RESET_GPIO
-#define BOARD_RESET_GPIO           GPIO_NUM_3
-#endif
-
-// VBAT -- 1M -- GPIO1 -- 1M -- GND  (2:1 divider). Leave floating if unused.
 #ifndef BOARD_BATTERY_ADC_GPIO
 #define BOARD_BATTERY_ADC_GPIO     GPIO_NUM_1
 #define BOARD_BATTERY_ADC_UNIT     ADC_UNIT_1
