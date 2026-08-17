@@ -1,0 +1,23 @@
+#pragma once
+
+#include "hap/platform/Storage.hpp"
+
+// Log whether a leftover pairing_list is present. Pairings persist across reboot.
+void hap_wipe_legacy_nvs();
+
+// Remove controller pairings and GSN. Keeps accessory_id / LTSK so the
+// setup code and identity stay the same.
+void hap_clear_controller_pairings(hap::platform::Storage& storage);
+
+// Drop empty, junk, or incomplete pairing_list entries that would make
+// HAP advertise SF=0 (already paired) so iPhone will not show the accessory.
+// Returns true if a verified controller pairing remains (advertise SF=0).
+// Pair-Setup without Pair-Verify still returns false so Home can rediscover.
+bool hap_sanitize_pairings(hap::platform::Storage& storage);
+
+// Ensure accessory_id is a HAP static-random Device ID (top two bits of
+// the first octet are 11) and is not the factory public MAC. The BLE
+// radio address must be this same 48-bit value or iPhone cannot reconnect
+// after Add Accessory (Home 未响应). Returns false if pairings were
+// cleared because the identity had to change.
+bool hap_align_ble_identity(hap::platform::Storage& storage);
